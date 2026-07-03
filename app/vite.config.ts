@@ -1,4 +1,3 @@
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig, defaultClientConditions } from 'vite'
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { svelte } from '@sveltejs/vite-plugin-svelte';
@@ -27,10 +26,6 @@ export default defineConfig({
     nodePolyfills({ include: ['buffer'], globals: { global: true, process: !!webMail } }),
     svelte(),
     wasm(),
-    sentryVitePlugin({
-      org: "mustang-jq",
-      project: "mustang"
-    })
   ],
   resolve: {
     // Explicitly set the resolve conditions for Vite 7+

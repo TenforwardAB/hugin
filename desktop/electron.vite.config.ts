@@ -1,7 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import replace from '@rollup/plugin-replace';
 import conditionalCompile from "vite-plugin-conditional-compile";
 import { production, webMail, includeProprietary } from '../app/logic/build';
@@ -38,12 +37,6 @@ export default defineConfig({
       }),
       nodePolyfills({include: ['buffer'], globals: {global: false, process: false}}),
       svelte(),
-      sentryVitePlugin({
-        org: "mustang-jq",
-        project: "mustang",
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-        disable: !production,
-      }),
     ],
     resolve: {
       // Explicitly set the resolve conditions for Vite 7+

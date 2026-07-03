@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: "im.mustang.capa",
-  appName: "Mustang",
+  appId: "eu.mailtrix.hugin",
+  appName: "Hugin",
   webDir: "./dist",
   plugins: {
     CapacitorNodeJS: {

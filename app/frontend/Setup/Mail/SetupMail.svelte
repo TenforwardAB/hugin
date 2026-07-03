@@ -1,6 +1,10 @@
 <vbox flex class="setup-mail-window">
   <hbox flex />
   <vbox class="page-box" step={step}>
+    {#if step == Step.SolutrixLogin}
+      <SetupSolutrix bind:config
+        onSucceeded={onSolutrixSucceeded} onError={showError} />
+    {/if}
     {#if step == Step.EmailAddress || step == Step.FindConfig || step == Step.FoundConfig || step == Step.CheckConfig || step == Step.Error}
       <EmailAddressPassword bind:emailAddress bind:password
         on:continue={onContinue} />
@@ -30,12 +34,12 @@
       onContinue={onContinue}
       errorCallback={showError}
       onReset={reset}
-      showReset={step != Step.EmailAddress}
-      showContinue={step != Step.Login}
+      showReset={step != Step.EmailAddress && step != Step.SolutrixLogin}
+      showContinue={step != Step.Login && step != Step.SolutrixLogin}
       canCancel={true}
       onCancel={() => onClose()}
       >
-      {#if step != Step.ManualConfig && step != Step.CheckConfig && step != Step.FinalizeConfig}
+      {#if step != Step.ManualConfig && step != Step.CheckConfig && step != Step.FinalizeConfig && step != Step.SolutrixLogin}
         <Button label={$t`Manual setup`} classes="secondary"
           disabled={!canContinue}
           onClick={onManualSetup}
@@ -66,6 +70,9 @@
   import { SetupMustangApp } from "../SetupMustangApp";
   import { mailMustangApp } from "../../Mail/MailMustangApp";
   import { Cancelled } from "../../../logic/util/flow/Abortable";
+  import { solutrixOnly } from "../../../logic/Mail/Solutrix/solutrix";
+  import type { JMAPAccount } from "../../../logic/Mail/JMAP/JMAPAccount";
+  import SetupSolutrix from "./SetupSolutrix.svelte";
   import EmailAddressPassword from "./EmailAddressPassword.svelte";
   import FindConfig from "./FindConfig.svelte";
   import FoundConfig from "./FoundConfig.svelte";
@@ -101,8 +108,12 @@
     ManualConfig = 8,
     Instructions = 9,
     Login = 10,
+    SolutrixLogin = 11,
   }
-  let step: Step = Step.EmailAddress;
+  // Solutrix build: one-click OIDC sign-in replaces the generic flow. The
+  // generic flow stays available behind the flag (other/multiple accounts).
+  const firstStep = solutrixOnly ? Step.SolutrixLogin : Step.EmailAddress;
+  let step: Step = firstStep;
   let abort = new AbortController();
 
   function onFindConfigSucceeded() {
@@ -122,6 +133,14 @@
   }
   function onLoginSucceeded() {
     step = Step.CheckConfig;
+  }
+  function onSolutrixSucceeded() {
+    // verifyLogin() already ran (OAuth2 + JMAP session); the account's email
+    // address comes from the Session resource, so we never had to ask for it.
+    emailAddress = (config as JMAPAccount).session.username;
+    config.emailAddress = emailAddress;
+    password = "";
+    step = Step.FinalizeConfig;
   }
   function onCheckConfigSucceeded() {
     if (step != Step.CheckConfig) {
@@ -199,7 +218,7 @@
 
   $: emailAddress, resetMaybe();
   function resetMaybe() {
-    if (step != Step.EmailAddress) {
+    if (step != Step.EmailAddress && step != Step.SolutrixLogin && step != Step.FinalizeConfig) {
       reset();
     }
   }
@@ -209,7 +228,7 @@
     altConfigs?.clear();
     errorMessage = null;
     isSaving = false;
-    step = Step.EmailAddress;
+    step = firstStep;
   }
 
   // Error

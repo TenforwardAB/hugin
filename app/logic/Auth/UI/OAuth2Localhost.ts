@@ -24,7 +24,10 @@ export class OAuth2Localhost extends OAuth2UI {
     let port = 1024 + Math.ceil(Math.random() * 64000);
     let server = await appGlobal.remoteApp.newHTTPServer();
     await server.start(port);
-    let doneURL = `http://localhost:${port}/login-success`;
+    // RFC 8252 §7.3: loopback redirects use the IP literal, not "localhost" —
+    // IdPs (e.g. fosite) only apply the port-agnostic loopback match to
+    // 127.0.0.1 / [::1].
+    let doneURL = `http://127.0.0.1:${port}/login-success`;
     let url = await this.oAuth2.getAuthURL(doneURL);
     // console.log("OAuth2: Localhost: Load URL", url, "and done URL", doneURL);
     await this.loginURLCallback(url);

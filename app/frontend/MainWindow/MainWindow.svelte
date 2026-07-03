@@ -51,6 +51,7 @@
 
 <script lang="ts">
   import { selectedApp, sidebarApp, mustangApps, goTo, openApp, history } from "../AppsBar/selectedApp";
+  import { solutrixOnly } from "../../logic/Mail/Solutrix/solutrix";
   import { appGlobal } from "../../logic/app";
   // #if [!WEBMAIL]
   // @ts-ignore ts2300
@@ -121,7 +122,8 @@
 
   function setup() {
     // #if [!WEBMAIL]
-    goTo("/setup/initial", {});
+    // Solutrix build: straight to sign-in; the import flow stays behind the flag.
+    goTo(solutrixOnly ? "/setup/mail" : "/setup/initial", {});
     // #endif
   }
 

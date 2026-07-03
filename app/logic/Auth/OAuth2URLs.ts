@@ -10,6 +10,18 @@
  */
 export const OAuth2URLs = [
   {
+    domains: ["solutrix.io", "mailtrix.eu"],
+    hostnames: ["jmap.solutrix.io"],
+    // Solutrix IdP (muninid, OIDC). Public client — PKCE S256 enforced,
+    // no client secret. Loopback redirect per RFC 8252.
+    authURL: "https://idp.solutrix.io/oauth/authorize",
+    tokenURL: "https://idp.solutrix.io/oauth/token",
+    scope: "openid offline_access profile email account",
+    clientID: "hugin-desktop",
+    clientSecret: null,
+    doPKCE: true,
+  },
+  {
     domains: ["outlook.com", "outlook.office365.com", "outlook.cloud.microsoft"],
     hostnames: ["outlook.office365.com", "outlook.cloud.microsoft", "outlook.office.com"],
     authURL: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",

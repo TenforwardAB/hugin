@@ -4,6 +4,7 @@
   <ExpanderButton
     on:expand={() => catchErrors(() => startSetup("mail"))}
     label={$t`Add email address`} />
+  {#if !solutrixOnly}
   <ExpanderButton
     on:expand={() => catchErrors(() => startSetup("chat"))}
     label={$t`Add chat account`} />
@@ -16,6 +17,7 @@
   <ExpanderButton
     on:expand={() => catchErrors(() => startSetup("meet"))}
     label={$t`Add video conference account`} />
+  {/if}
   <!--
   <ExpanderButton
     on:expand={() => catchErrors(() => startSetup("file"))}
@@ -31,6 +33,7 @@
 </hbox>
 
 <script lang="ts">
+  import { solutrixOnly } from "../../logic/Mail/Solutrix/solutrix";
   import { SetupMustangApp } from "./SetupMustangApp";
   import { mailMustangApp } from "../Mail/MailMustangApp";
   import { goTo, openApp } from "../AppsBar/selectedApp";

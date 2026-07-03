@@ -12,11 +12,6 @@
   <vbox flex class="middle">
     <DemoBarMiddle />
   </vbox>
-  // #if [!WEBMAIL]
-  <vbox class="above-setup">
-    <DemoToggle />
-  </vbox>
-  // #endif
 </vbox>
 
 <script lang="ts">
@@ -25,7 +20,6 @@
   import AppButton from "./AppButton.svelte";
   import AppIcon from "./AppIcon.svelte";
   import SubAppsList from "./SubAppsList.svelte";
-  import DemoToggle from "./DemoToggle.svelte";
   import DemoBarMiddle from "./DemoBarMiddle.svelte";
   import { catchErrors } from "../Util/error";
   import type { Collection } from "svelte-collections";

@@ -153,8 +153,10 @@ meetSettings.forApp = meetMustangApp;
 settingsCategories.add(meetSettings);
 // #endif
 
+// #if [PROPRIETARY]
 accountSettings.add(new AccSetting(M3Account, "m3-server", gt`Server`, AccountURLServer, true));
 accountSettings.add(new AccSetting(SIPAccount, "sip", gt`Details`, SIP, true));
+// #endif
 
 const filesSettings = new SettingsCategory("files", gt`Files`, null, true);
 filesSettings.subCategories.addAll([

@@ -1,53 +1,29 @@
 import { contactsMustangApp } from "../Contacts/ContactsMustangApp";
-import { chatMustangApp } from "../Chat/ChatMustangApp";
-// #if [PROPRIETARY]
-import { meetMustangApp } from "../Meet/MeetMustangApp";
-// #endif
 import { mailMustangApp } from "../Mail/MailMustangApp";
 import { calendarMustangApp } from "../Calendar/CalendarMustangApp";
 // #if [!WEBMAIL]
 import { filesMustangApp } from "../Files/FilesMustangApp";
-import { topicMustangApp } from "../Topic/TopicMustangApp";
-import { webAppsMustangApp } from "../WebApps/WebAppsMustangApp";
 // #endif
 import { settingsMustangApp } from "../Settings/Window/SettingsMustangApp";
 import { mustangApps, selectedApp } from "./selectedApp";
-import { production } from "../../logic/build";
 
+/**
+ * Clean Solutrix shell: the core PIM apps only.
+ *
+ * Upstream Mustang loaded a demo app list (Chat / Meet / WebApps / Topic) plus
+ * fake seed data whenever `production` was false. We deliberately drop that so
+ * Hugin starts from an empty, well-defined shell; Solutrix features get added
+ * here on purpose as they are built.
+ */
 export function loadMustangApps() {
-  if (!production) {
-    loadDemoMustangApps();
-    selectedApp.set(mailMustangApp);
-    return;
-  }
-  // Once finished, add apps here, and remove loadDemoMustangApps() */
-
   mustangApps.replaceAll([
-    contactsMustangApp,
     mailMustangApp,
+    contactsMustangApp,
     calendarMustangApp,
     // #if [!WEBMAIL]
     filesMustangApp,
-    webAppsMustangApp,
-    topicMustangApp,
     // #endif
     settingsMustangApp,
   ]);
-}
-
-export function loadDemoMustangApps() {
-  mustangApps.replaceAll([
-    contactsMustangApp,
-    mailMustangApp,
-    chatMustangApp,
-    // #if [PROPRIETARY]
-    meetMustangApp,
-    // #endif
-    calendarMustangApp,
-    filesMustangApp,
-    webAppsMustangApp,
-    topicMustangApp,
-    settingsMustangApp,
-  ]);
-  selectedApp.set(contactsMustangApp);
+  selectedApp.set(mailMustangApp);
 }

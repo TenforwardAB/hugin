@@ -76,7 +76,19 @@ export class JMAPFolder extends Folder {
       return await this.listAllMessages();
     }
 
-    return await this.fetchChangedMessagesForAllFolders();
+    try {
+      return await this.fetchChangedMessagesForAllFolders();
+    } catch (ex) {
+      // RFC 8620 §5.2: when the server can't compute the delta since our state
+      // (cannotCalculateChanges) the client must discard the state and resync
+      // in full. Some backends (e.g. the Solutrix JMAP facade, which fronts a
+      // store without a global mod-sequence) always answer this.
+      if ((ex as any)?.code == "cannotCalculateChanges") {
+        this.account.syncState.delete("Email");
+        return await this.listAllMessages();
+      }
+      throw ex;
+    }
   }
 
   protected async fetchMessageList(start?: number, limit?: number, options?: any): Promise<{ newMessages: ArrayColl<JMAPEMail>, updatedMessages: ArrayColl<JMAPEMail> }> {

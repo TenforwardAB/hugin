@@ -424,7 +424,12 @@ export class JMAPAccount extends MailAccount {
   }
 
   async send(email: EMail): Promise<void> {
-    let outboxFolder = this.getSpecialFolder(SpecialFolder.Outbox) ??
+    // getSpecialFolder() never returns undefined — on a miss it falls back to
+    // rootFolders.first, i.e. the INBOX. So `getSpecialFolder(Outbox) ?? Drafts`
+    // silently resolved to the INBOX (JMAP has no outbox role) and every
+    // outgoing message was imported into the INBOX. Look for a real Outbox
+    // explicitly; otherwise use Drafts.
+    let outboxFolder = this.getAllFolders().find(f => f.specialFolder == SpecialFolder.Outbox) ??
       this.getSpecialFolder(SpecialFolder.Drafts);
     let sentFolder = email.folder ??
       this.getSpecialFolder(SpecialFolder.Sent);

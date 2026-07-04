@@ -391,7 +391,9 @@ export class OAuth2 extends WebBasedAuth {
   }
   protected get storageKey(): string {
     let host = new URL(this.tokenURL).host.replaceAll(".", "-");
-    let username = this.account.username.replace(/@/, "-").replaceAll(".", "-");
+    // username may be null before the first interactive login (e.g. OAuth2-first
+    // flows where the address is only known from the id_token/session afterwards).
+    let username = (this.account.username ?? "").replace(/@/, "-").replaceAll(".", "-");
     return `oauth2refresh.${host}.${username}.${this.account.id}`;
   }
 }

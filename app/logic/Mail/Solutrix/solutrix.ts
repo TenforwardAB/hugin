@@ -38,6 +38,20 @@ export function makeSolutrixConfig(): JMAPAccount {
   assert(oAuth2, "Solutrix OAuth2 config not found in OAuth2URLs");
   // Desktop: system browser + loopback redirect (RFC 8252).
   oAuth2.uiMethod = OAuth2UIMethod.SystemBrowser;
+  // The address is only known after login. Set it from the id_token during the
+  // token exchange (before storeRefreshToken), so the refresh token is keyed by
+  // the real address and survives restarts. The JMAP Session is the authority
+  // for the account address afterwards; this is only for the token storage key.
+  oAuth2.idTokenCallback = (idToken) => {
+    try {
+      let b64 = idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      let claims = JSON.parse(atob(b64));
+      let address = claims.email ?? claims.preferred_username;
+      if (address) config.username = address;
+    } catch (ex) {
+      console.error("Solutrix: could not read address from id_token", ex);
+    }
+  };
   config.oAuth2 = oAuth2;
   return config;
 }

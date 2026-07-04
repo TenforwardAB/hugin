@@ -164,15 +164,23 @@ export class JMAPAccount extends MailAccount {
    * @returns Results from the calls.
    *   One call may return multiple results, so the results array may be longer than the number of calls.
    *   The results will in the same order as the calls, though. */
-  async makeCalls(calls: [string, Record<string, any>, string?][]): Promise<TJMAPMethodResponse[]> {
-    if (!this.isLoggedIn) {
-      if (this.session) {
-        await this.oAuth2.login(false);
-      }
-      if (!this.isLoggedIn) {
-        await this.login(false);
-      }
+  /** Ensure we have a live session (and OAuth2 token) before using it. Mirrors
+   * the guard makeCalls() has always had, for the paths that read the session
+   * directly (uploadBlob, eventSource). */
+  protected async ensureLoggedIn(): Promise<void> {
+    if (this.isLoggedIn) {
+      return;
     }
+    if (this.session) {
+      await this.oAuth2.login(false);
+    }
+    if (!this.isLoggedIn) {
+      await this.login(false);
+    }
+  }
+
+  async makeCalls(calls: [string, Record<string, any>, string?][]): Promise<TJMAPMethodResponse[]> {
+    await this.ensureLoggedIn();
     let using = ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"];
     if (this.haveContacts) {
       using.push("urn:ietf:params:jmap:contacts");
@@ -317,6 +325,7 @@ export class JMAPAccount extends MailAccount {
   }
 
   async uploadBlob(blob: Buffer, mimeType: string, filename: string): Promise<TJMAPUpload> {
+    await this.ensureLoggedIn();
     let url = this.session.uploadUrl;
     url = url
       .replace("{accountId}", this.accountID)

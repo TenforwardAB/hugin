@@ -461,9 +461,11 @@ export class JMAPAccount extends MailAccount {
         }
       }
     });
-    let error = sendResponse["notCreated"] as any;
+    // Only a SetError for *our* creation is a failure. notCreated is always an
+    // object in the response (empty on success), and `{}` is truthy — so check
+    // the sendMessage entry itself, like checkChangeError()/getFirst() do.
+    let error = (sendResponse["notCreated"] as any)?.["sendMessage"];
     if (error) {
-      error = error["sendMessage"];
       throw new Error("Upload of message to server failed: " + (error?.description ?? "") + " " + (error?.properties?.join(", ") ?? ""));
     }
   }

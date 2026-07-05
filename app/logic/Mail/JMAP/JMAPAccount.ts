@@ -614,7 +614,23 @@ export class JMAPAccount extends MailAccount {
     }
     if (type == "ContactCard") {
       let addressbooks = this.dependentAccounts().filterOnce(a => a instanceof JMAPAddressbook) as Collection<JMAPAddressbook>;
-      await addressbooks.first?.fetchChangedPersonsForAllAddressbooks();
+      let ab = addressbooks.first;
+      if (!ab) {
+        return;
+      }
+      try {
+        if (!this.syncState.has("ContactCard")) {
+          throw Object.assign(new Error("no sync state"), { code: "cannotCalculateChanges" });
+        }
+        await ab.fetchChangedPersonsForAllAddressbooks();
+      } catch (ex) {
+        if ((ex as any)?.code == "cannotCalculateChanges") {
+          this.syncState.delete("ContactCard");
+          await ab.listContacts();
+        } else {
+          throw ex;
+        }
+      }
     }
     if (type == "CalendarEvent") {
       let calendars = this.dependentAccounts().filterOnce(a => a instanceof JMAPCalendar) as Collection<JMAPCalendar>;

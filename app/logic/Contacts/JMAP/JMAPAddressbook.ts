@@ -122,7 +122,17 @@ export class JMAPAddressbook extends Addressbook {
       return await this.listAllPersons();
     }
 
-    return await this.fetchChangedPersonsForAllAddressbooks();
+    try {
+      return await this.fetchChangedPersonsForAllAddressbooks();
+    } catch (ex) {
+      // RFC 8620 §5.2: server can't compute the delta — full refetch.
+      // (The Solutrix JMAP facade serves contacts refetch-based in v1.)
+      if ((ex as any)?.code == "cannotCalculateChanges") {
+        this.account.syncState.delete("ContactCard");
+        return await this.listAllPersons();
+      }
+      throw ex;
+    }
   }
 
   /**

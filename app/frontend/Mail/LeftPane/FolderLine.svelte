@@ -16,9 +16,12 @@
     {/if}
   </hbox>
   <hbox flex />
-  {#if $folder.countNewArrived && isNormalFolderOrInbox}
+  <!-- Unread badge (classic mail-client semantics: stays until read).
+       Upstream showed countNewArrived, which only IMAP's \Recent sets —
+       JMAP (and most protocols here) never did, so the badge never showed. -->
+  {#if $folder.countUnread && isNormalFolderOrInbox}
     <hbox class="count">
-      {$folder.countNewArrived}
+      {$folder.countUnread}
     </hbox>
   {/if}
   <hbox class="buttons">

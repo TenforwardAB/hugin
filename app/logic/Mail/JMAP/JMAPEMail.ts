@@ -182,6 +182,11 @@ export class JMAPEMail extends EMail {
   }
 
   async markRead(read = true) {
+    // Immediate local unread-badge feedback; the server-derived counters from
+    // the next Mailbox/get sync remain the source of truth.
+    if (this.isRead != read && this.folder) {
+      this.folder.countUnread = Math.max(0, this.folder.countUnread + (read ? -1 : 1));
+    }
     await super.markRead(read);
     await this.setFlagServer("$seen", read);
   }

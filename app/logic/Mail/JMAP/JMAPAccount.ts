@@ -595,6 +595,10 @@ export class JMAPAccount extends MailAccount {
       }
       try {
         await (this.inbox as JMAPFolder).fetchChangedMessagesForAllFolders();
+        // Delta applied — refresh the folder counters too (Mailbox/get is one
+        // cheap call; without it the unread badges would go stale now that
+        // the server serves real deltas and the full-resync path stops running).
+        await this.listFolders();
       } catch (ex) {
         if ((ex as any)?.code == "cannotCalculateChanges") {
           // RFC 8620 §5.2: server can't compute the delta — resync in full.

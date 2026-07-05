@@ -240,6 +240,30 @@ export class JSCalendarEvent {
           // JMAP status that we don't support. Keep it as-is.
         } // else `InvitationResponse` not yet listed here -> keep as-is
       }
+      // Participants that exist locally but not yet in the JMAP object (e.g.
+      // a NEW event, where the loop above has nothing to update) must be
+      // ADDED — otherwise invitees were silently dropped on create.
+      for (let p of event.participants) {
+        let exists = Object.values(jmap.participants).find(jp =>
+          jp.email ? jp.email == p.emailAddress : jp.name == p.name);
+        if (exists) {
+          continue;
+        }
+        let key = "p" + Math.random().toString(36).slice(2, 10);
+        jmap.participants[key] = {
+          "@type": "Participant",
+          name: p.name || undefined,
+          email: p.emailAddress || undefined,
+          sendTo: p.emailAddress ? { imip: "mailto:" + p.emailAddress } : undefined,
+          kind: "individual",
+          roles: p.response == InvitationResponse.Organizer ? { owner: true } : { attendee: true },
+          participationStatus:
+            p.response == InvitationResponse.Accept ? "accepted" :
+            p.response == InvitationResponse.Decline ? "declined" :
+            p.response == InvitationResponse.Tentative ? "tentative" :
+            "needs-action",
+        } as any;
+      }
     } else if (jmap.participants) {
       delete jmap.participants;
     }

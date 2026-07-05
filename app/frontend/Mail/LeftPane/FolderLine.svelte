@@ -19,7 +19,7 @@
   <!-- Unread badge (classic mail-client semantics: stays until read).
        Upstream showed countNewArrived, which only IMAP's \Recent sets —
        JMAP (and most protocols here) never did, so the badge never showed. -->
-  {#if $folder.countUnread && isNormalFolderOrInbox}
+  {#if $folder.countUnread}
     <hbox class="count">
       {$folder.countUnread}
     </hbox>
@@ -46,7 +46,6 @@
   export let folder: Folder;
 
   $: tooltip = gt`${folder.name}\n\n${$folder.countNewArrived} new, ${folder.countUnread} unread, ${folder.countTotal} total`;
-  $: isNormalFolderOrInbox = !folder.specialFolder || folder.specialFolder == SpecialFolder.Normal || folder.specialFolder == SpecialFolder.Inbox;
 
   let contextMenu: ContextMenu;
 </script>

@@ -15,6 +15,7 @@ import { AuthMethod } from "../../Abstract/Account";
 import { ConnectError, LoginError } from "../../Abstract/Account";
 import { SpecialFolder } from "../Folder";
 import { appGlobal } from "../../app";
+import { setStorage } from "../Store/setStorage";
 import { appName, appVersion } from "../../build";
 import { basicAuth } from "../../Auth/httpAuth";
 import { EventDecoder } from "../../util/eventSource";
@@ -66,8 +67,10 @@ export class JMAPAccount extends MailAccount {
 
   async startup() {
     await super.startup();
-    this.startPushListener()
-      .catch(this.errorCallback);
+    if (!this.isSharedAccount) {
+      this.startPushListener()
+        .catch(this.errorCallback);
+    }
     let inbox = this.inbox as JMAPFolder;
     assert(inbox, "Inbox not found");
     inbox.startPolling();
@@ -110,12 +113,83 @@ export class JMAPAccount extends MailAccount {
     assert(sanitize.url(session.downloadUrl), "Need downloadUrl in session");
     assert(sanitize.url(session.uploadUrl), "Need uploadUrl in session");
     assert(sanitize.url(session.eventSourceUrl), "Need eventSourceUrl in session");
-    this.accountID = session.primaryAccounts["urn:ietf:params:jmap:mail"];
-    assert(this.accountID, "JMAP Session: No primary mail account");
+    let primaryID = session.primaryAccounts["urn:ietf:params:jmap:mail"];
+    assert(primaryID, "JMAP Session: No primary mail account");
+    // A shared (delegated) account keeps its own accountID — only adopt the
+    // primary when unset or no longer present in the session.
+    if (!this.accountID || !session.accounts[this.accountID]) {
+      this.accountID = primaryID;
+    }
     let mailAccount = session.accounts[this.accountID];
     assert(mailAccount, "JMAP Session: Account not found");
 
     this.session = session;
+
+    // Multi-account Session (RFC 8620): the server lists accounts shared
+    // with us (delegation). Materialize them as dependent accounts.
+    if (this.accountID == primaryID) {
+      this.syncSharedAccounts()
+        .catch(this.errorCallback);
+    }
+  }
+
+  /** True for a delegated (shared) mailbox materialized from the Session. */
+  get isSharedAccount(): boolean {
+    return !!this.session &&
+      this.accountID != this.session.primaryAccounts["urn:ietf:params:jmap:mail"];
+  }
+
+  /**
+   * Create/update one dependent JMAPAccount per extra account in the Session
+   * (shared mailboxes via delegation grants). They share our OAuth2 login and
+   * URL; sending is disabled server-side (no submission capability, no
+   * identities). Accounts whose grant was revoked are removed from the UI.
+   */
+  protected async syncSharedAccounts(): Promise<void> {
+    let sharedIDs = Object.keys(this.session.accounts)
+      .filter(id => id != this.accountID);
+    let jmapSiblings = appGlobal.emailAccounts.contents
+      .filter(acc => acc != this && acc.protocol == "jmap" && (acc as JMAPAccount).url == this.url) as JMAPAccount[];
+
+    for (let id of sharedIDs) {
+      let info = this.session.accounts[id] as any;
+      let shared = jmapSiblings.find(acc => acc.accountID == id);
+      if (!shared) {
+        shared = new JMAPAccount();
+        shared.accountID = id;
+        shared.url = this.url;
+        shared.name = sanitize.nonemptystring(info?.name, "Shared mailbox");
+        shared.emailAddress = shared.name;
+        shared.username = this.username;
+        shared.realname = this.realname;
+        shared.authMethod = this.authMethod;
+        shared.workspace = this.workspace;
+        shared.loginOnStartup = false; // we start it from here on every login
+        setStorage(shared);
+        appGlobal.emailAccounts.add(shared);
+      }
+      shared.mainAccount = this;
+      shared.oAuth2 = this.oAuth2; // share the token; never a separate login
+      try {
+        if (!shared.dbID) {
+          await shared.storage.saveAccount(shared);
+        }
+        await shared.storage.readFolderHierarchy(shared);
+        await shared.getSession();
+        await shared.listFolders();
+        // Poll only — no own push stream (the server pushes on OUR user;
+        // shared-account changes are picked up by polling, per the v1 plan).
+        (shared.inbox as JMAPFolder)?.startPolling();
+      } catch (ex) {
+        shared.errorCallback(ex as Error);
+      }
+    }
+
+    // Grant revoked: drop the account from the UI.
+    for (let stale of jmapSiblings.filter(acc =>
+        acc.isSharedAccount && !sharedIDs.includes(acc.accountID))) {
+      appGlobal.emailAccounts.remove(stale);
+    }
   }
 
   get haveContacts(): boolean {

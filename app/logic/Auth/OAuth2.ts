@@ -105,8 +105,15 @@ export class OAuth2 extends WebBasedAuth {
           return await this.getAccessTokenFromRefreshToken(this.refreshToken);
         } catch (ex) {
           console.error(ex);
-          this.refreshToken = null;
-          await this.deleteRefreshTokenFromStorage();
+          // Only discard the refresh token when the SERVER rejected it (e.g.
+          // invalid_grant = expired/revoked). On network errors or timeouts
+          // (computer asleep, connection drop — fetch timeout is short) the
+          // token is still perfectly valid: deleting it here forced a manual
+          // interactive login on every restart after any network hiccup.
+          if (ex instanceof OAuth2ServerError) {
+            this.refreshToken = null;
+            await this.deleteRefreshTokenFromStorage();
+          }
         }
       }
       if (this.account.password && this.tokenURLPasswordAuth) {

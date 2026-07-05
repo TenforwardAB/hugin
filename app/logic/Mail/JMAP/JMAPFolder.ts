@@ -59,13 +59,24 @@ export class JMAPFolder extends Folder {
    * But doesn't download their contents. @see downloadMessages() */
   protected async listAllMessages(): Promise<ArrayColl<JMAPEMail>> {
     const batchSize = 200;
+    // JMAP has no \Recent equivalent. Treat messages that appear as NEW and
+    // unread on a RE-sync as newly arrived (drives new-mail notifications).
+    // Suppressed on the folder's first-ever full sync (this.syncState unset,
+    // persisted below) to avoid a notification storm for old mail.
+    let isResync = !!this.syncState;
     let allNewMessages = new ArrayColl<JMAPEMail>();
     for (let i = 0; i < this.countTotal; i += batchSize) {
       let { newMessages } = await this.fetchMessageList(i, batchSize);
+      if (isResync) {
+        for (let msg of newMessages) {
+          msg.isNewArrived = !msg.isRead;
+        }
+      }
       this.messages.addAll(newMessages);
       await this.saveNewMsgs(newMessages);
       allNewMessages.addAll(newMessages);
     }
+    this.syncState ??= "synced";
     await this.storage.saveFolderProperties(this);
     return allNewMessages;
   }

@@ -512,7 +512,20 @@ export class JMAPAccount extends MailAccount {
     }
 
     if (type == "Email") {
-      await (this.inbox as JMAPFolder).fetchChangedMessagesForAllFolders();
+      try {
+        await (this.inbox as JMAPFolder).fetchChangedMessagesForAllFolders();
+      } catch (ex) {
+        if ((ex as any)?.code == "cannotCalculateChanges") {
+          // RFC 8620 §5.2: server can't compute the delta — resync in full.
+          // (The Solutrix JMAP facade always answers this; see JMAPFolder.)
+          // Refreshing the folder list also updates the total/unread counters.
+          this.syncState.delete("Email");
+          await this.listFolders();
+          await (this.inbox as JMAPFolder)?.listMessages();
+        } else {
+          throw ex;
+        }
+      }
     }
     if (type == "ContactCard") {
       let addressbooks = this.dependentAccounts().filterOnce(a => a instanceof JMAPAddressbook) as Collection<JMAPAddressbook>;

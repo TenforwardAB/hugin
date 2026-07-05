@@ -27,7 +27,9 @@ export async function showNewMail(messages: EMail[]) {
   const doWebNotification = settings.includes("popup");
   const doOSNotification = settings.includes("popup-os");
   let isOSNotificationSupported: boolean = undefined;
-  const onlyInAB = getLocalStorage("notifications.mail.only.addressbook", true).value;
+  // Solutrix default: notify for all senders. (Upstream defaults to
+  // address-book senders only, which silently drops most notifications.)
+  const onlyInAB = getLocalStorage("notifications.mail.only.addressbook", false).value;
 
   const filterConditions: ((msg: EMail) => boolean)[] = [];
   filterConditions.push(msg => msg.isNewArrived);

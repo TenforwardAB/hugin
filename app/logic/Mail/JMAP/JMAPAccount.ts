@@ -646,14 +646,28 @@ export class JMAPAccount extends MailAccount {
             try {
               let json = JSON.parse(event.data);
               assert(json.changed, "Need state changes");
-              let changes = json.changed[this.accountID];
-              for (let typename in changes) {
-                let newState = changes[typename];
-                let type = typename as TJMAPObjectType;
-                if (newState == this.syncState.get(type)) {
+              // The StateChange may be keyed by any account we can address:
+              // our own, or a shared mailbox (delegation fan-out) — dispatch
+              // each to the JMAPAccount that materializes that account.
+              for (let accountID in json.changed) {
+                let account: JMAPAccount = accountID == this.accountID
+                  ? this
+                  : appGlobal.emailAccounts.contents.find(acc =>
+                      acc.protocol == "jmap" &&
+                      (acc as JMAPAccount).accountID == accountID &&
+                      (acc as JMAPAccount).url == this.url) as JMAPAccount;
+                if (!account) {
                   continue;
                 }
-                await this.sync(type, newState);
+                let changes = json.changed[accountID];
+                for (let typename in changes) {
+                  let newState = changes[typename];
+                  let type = typename as TJMAPObjectType;
+                  if (newState == account.syncState.get(type)) {
+                    continue;
+                  }
+                  await account.sync(type, newState);
+                }
               }
             } catch (ex) {
               console.error(ex);

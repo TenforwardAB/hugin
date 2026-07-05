@@ -65,7 +65,10 @@ export class JMAPFolder extends Folder {
     // persisted below) to avoid a notification storm for old mail.
     let isResync = !!this.syncState;
     let allNewMessages = new ArrayColl<JMAPEMail>();
-    for (let i = 0; i < this.countTotal; i += batchSize) {
+    // Always run at least one batch: countTotal is the LOCAL counter and may
+    // be stale or 0 (folder empty at last sync) — skipping the fetch entirely
+    // would never pick up new mail nor set the account sync state.
+    for (let i = 0; i == 0 || i < this.countTotal; i += batchSize) {
       let { newMessages } = await this.fetchMessageList(i, batchSize);
       if (isResync) {
         for (let msg of newMessages) {

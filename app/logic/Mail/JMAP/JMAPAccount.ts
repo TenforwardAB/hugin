@@ -586,6 +586,13 @@ export class JMAPAccount extends MailAccount {
     }
 
     if (type == "Email") {
+      if (!this.syncState.has("Email")) {
+        // Never fully synced (e.g. a shared mailbox that was empty at login):
+        // fetchChanged asserts on missing state — go straight to full resync.
+        await this.listFolders();
+        await (this.inbox as JMAPFolder)?.listMessages();
+        return;
+      }
       try {
         await (this.inbox as JMAPFolder).fetchChangedMessagesForAllFolders();
       } catch (ex) {

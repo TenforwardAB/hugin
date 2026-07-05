@@ -130,7 +130,17 @@ export class JMAPCalendar extends Calendar {
       return await this.listAllEvents();
     }
 
-    return await this.fetchChangedEventsForAllCalendars();
+    try {
+      return await this.fetchChangedEventsForAllCalendars();
+    } catch (ex) {
+      // RFC 8620 §5.2: server can't compute the delta — full refetch.
+      // (The Solutrix JMAP facade serves calendars refetch-based in v1.)
+      if ((ex as any)?.code == "cannotCalculateChanges") {
+        this.account.syncState.delete("CalendarEvent");
+        return await this.listAllEvents();
+      }
+      throw ex;
+    }
   }
 
   /**

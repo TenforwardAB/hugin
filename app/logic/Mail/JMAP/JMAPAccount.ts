@@ -634,7 +634,23 @@ export class JMAPAccount extends MailAccount {
     }
     if (type == "CalendarEvent") {
       let calendars = this.dependentAccounts().filterOnce(a => a instanceof JMAPCalendar) as Collection<JMAPCalendar>;
-      await calendars.first?.fetchChangedEventsForAllCalendars();
+      let cal = calendars.first;
+      if (!cal) {
+        return;
+      }
+      try {
+        if (!this.syncState.has("CalendarEvent")) {
+          throw Object.assign(new Error("no sync state"), { code: "cannotCalculateChanges" });
+        }
+        await cal.fetchChangedEventsForAllCalendars();
+      } catch (ex) {
+        if ((ex as any)?.code == "cannotCalculateChanges") {
+          this.syncState.delete("CalendarEvent");
+          await cal.listEvents();
+        } else {
+          throw ex;
+        }
+      }
     }
   }
 
